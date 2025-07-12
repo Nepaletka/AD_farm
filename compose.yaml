@@ -1,0 +1,16 @@
+services:
+  destructivefarm:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: destructivefarm
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - .:/ferma
+    ports:
+      - 9000:5000
+    command: |
+      sh -c "cd server && ls && ./start_server.sh"
+networks: {}
