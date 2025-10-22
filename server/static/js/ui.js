@@ -22,6 +22,7 @@ function generateFlagTableRows(rows) {
         var cells = [
             item.sploit,
             item.team !== null ? item.team : '',
+            item.task !== null ? item.task : '',  // Добавлено поле task
             item.flag,
             dateToString(new Date(item.time * 1000)),
             item.status,
