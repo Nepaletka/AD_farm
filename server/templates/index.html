@@ -10,7 +10,51 @@
     <title>Destructive Farm - Server</title>
 
     <link href="/static/css/bootswatch-flatly.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        .log-line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            line-height: 1.2;
+            margin: 0;
+            padding: 2px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        .log-timestamp {
+            color: #6c757d;
+            font-size: 11px;
+        }
+        .log-stdout {
+            color: #212529;
+        }
+        .log-stderr {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .log-content {
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+        #logModal .modal-dialog {
+            max-width: 95%;
+            height: 90%;
+        }
+        #logModal .modal-body {
+            height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+        .log-container {
+            height: 100%;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .auto-scroll-checkbox {
+            margin-right: 10px;
+        }
+    </style>
 </head>
 
 <body>
@@ -28,7 +72,7 @@
                     <h4 class="card-title">Show Flags</h4>
                     <form id="show-flags-form">
                         <div class="row mb-2">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="sploit-select">Sploit</label>
                                 <select class="form-control form-control-sm" id="sploit-select" name="sploit">
                                     <option value="">All</option>
@@ -37,7 +81,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="team-select">Team</label>
                                 <select class="form-control form-control-sm" id="team-select" name="team">
                                     <option value="">All</option>
@@ -46,7 +90,16 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label for="task-select">Task</label>
+                                <select class="form-control form-control-sm" id="task-select" name="task">
+                                    <option value="">All</option>
+                                    {% for item in distinct_values['task'] %}
+                                    <option>{{ item }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
                                 <label for="flag-input">
                                     Flag
                                     <small class="text-muted ml-2">substring, case-insensitive</small>
@@ -115,6 +168,66 @@
                     </form>
                 </div>
             </div>
+            
+            <!-- Секция для загрузки файлов -->
+            <div class="card border-light mt-4">
+                <div class="card-body">
+                    <h4 class="card-title">Upload Script File</h4>
+                    <form id="upload-script-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="script-file">Select script file</label>
+                            <input type="file" class="form-control-file" id="script-file" name="file" accept=".py,.sh,.txt,.php,.js,.rb,.pl,.go,.java,.c,.cpp,.cs,.rs" required>
+                            <small class="form-text text-muted">
+                                Supported formats: Python, Shell, PHP, JavaScript, Ruby, Perl, Go, Java, C/C++, C#, Rust
+                            </small>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm">Upload Script</button>
+                        <div class="mt-2 upload-status"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Секция для отображения списка файлов -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-light">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="card-title mb-0">Script Files</h4>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm" id="refresh-scripts">
+                                <span class="refresh-icon">⟳</span> Refresh
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" id="refresh-running">
+                                <span class="refresh-icon">⟳</span> Refresh Running
+                            </button>
+                        </div>
+                    </div>
+                    <div class="scripts-list">
+                        <div class="text-center text-muted py-3">
+                            Loading scripts...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Секция для отображения запущенных скриптов -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-light">
+                <div class="card-body">
+                    <h4 class="card-title">Running Scripts</h4>
+                    <div class="running-scripts-list">
+                        <div class="text-center text-muted py-3">
+                            No scripts running
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -130,6 +243,7 @@
             <tr class="table-secondary">
                 <th scope="col">Sploit</th>
                 <th scope="col">Team</th>
+                <th scope="col">Task</th>
                 <th scope="col">Flag</th>
                 <th scope="col">Time</th>
                 <th scope="col">Status</th>
@@ -143,8 +257,435 @@
     </div>
 </div>
 
+<!-- Модальное окно для просмотра логов -->
+<div class="modal fade" id="logModal" tabindex="-1" role="dialog" aria-labelledby="logModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logModalLabel">Script Logs: <span id="logScriptName"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="log-container">
+                    <div id="logContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="mr-auto">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="autoScroll" checked>
+                        <label class="form-check-label" for="autoScroll">Auto-scroll</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="showTimestamps" checked>
+                        <label class="form-check-label" for="showTimestamps">Show timestamps</label>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary" id="clearLogs">Clear Logs</button>
+                <button type="button" class="btn btn-secondary" id="refreshLogs">Refresh</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/static/js/jquery.min.js"></script>
 <script src="/static/js/ui.js"></script>
+
+<script>
+// Глобальные переменные для управления логами
+let currentLogScript = null;
+let logRefreshInterval = null;
+let lastLogTimestamp = 0;
+
+// Функция для форматирования размера файла
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Функция для форматирования даты
+function formatDate(timestamp) {
+    return new Date(timestamp * 1000).toLocaleString();
+}
+
+// Функция для форматирования времени выполнения
+function formatUptime(startTime) {
+    const seconds = Math.floor((Date.now() / 1000) - startTime);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Функция для форматирования времени лога
+function formatLogTime(timestamp) {
+    return new Date(timestamp * 1000).toLocaleTimeString();
+}
+
+// Загрузка и отображение списка скриптов
+function loadScriptsList() {
+    $('.scripts-list').html('<div class="text-center text-muted py-3">Loading scripts...</div>');
+    
+    $.ajax({
+        url: '/api/scripts',
+        type: 'GET',
+        success: function(files) {
+            if (files.length === 0) {
+                $('.scripts-list').html('<div class="text-center text-muted py-3">No script files found</div>');
+                return;
+            }
+            
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover">';
+            html += '<thead><tr><th>Name</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead><tbody>';
+            
+            files.forEach(function(file) {
+                html += '<tr>';
+                html += '<td><strong>' + file.name + '</strong></td>';
+                html += '<td><span class="text-muted">' + formatFileSize(file.size) + '</span></td>';
+                html += '<td><small class="text-muted">' + formatDate(file.modified) + '</small></td>';
+                html += '<td>';
+                html += '<div class="btn-group btn-group-sm">';
+                html += '<a href="' + file.download_url + '" class="btn btn-outline-primary btn-sm" download>Download</a>';
+                html += '<button class="btn btn-outline-success btn-sm run-script" data-filename="' + file.name + '">Run</button>';
+                html += '<button class="btn btn-outline-info btn-sm show-logs" data-filename="' + file.name + '">Logs</button>';
+                html += '<button class="btn btn-outline-danger btn-sm delete-script" data-filename="' + file.name + '">Delete</button>';
+                html += '</div>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            $('.scripts-list').html(html);
+            
+            // Добавляем обработчики для кнопок
+            $('.delete-script').on('click', function() {
+                const filename = $(this).data('filename');
+                if (confirm('Are you sure you want to delete "' + filename + '"?')) {
+                    deleteScript(filename);
+                }
+            });
+            
+            $('.run-script').on('click', function() {
+                const filename = $(this).data('filename');
+                runScript(filename);
+            });
+            
+            $('.show-logs').on('click', function() {
+                const filename = $(this).data('filename');
+                showLogs(filename);
+            });
+        },
+        error: function(xhr) {
+            $('.scripts-list').html('<div class="alert alert-danger">Error loading scripts: ' + 
+                                   (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error') + '</div>');
+        }
+    });
+}
+
+// Загрузка и отображение запущенных скриптов
+function loadRunningScripts() {
+    $.ajax({
+        url: '/api/running_scripts',
+        type: 'GET',
+        success: function(scripts) {
+            if (scripts.length === 0) {
+                $('.running-scripts-list').html('<div class="text-center text-muted py-3">No scripts running</div>');
+                return;
+            }
+            
+            let html = '<div class="table-responsive"><table class="table table-sm table-hover">';
+            html += '<thead><tr><th>Script</th><th>PID</th><th>Uptime</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+            
+            scripts.forEach(function(script) {
+                const statusBadge = script.status === 'running' ? 
+                    '<span class="badge badge-success">Running</span>' : 
+                    '<span class="badge badge-secondary">Finished</span>';
+                
+                html += '<tr>';
+                html += '<td><strong>' + script.filename + '</strong></td>';
+                html += '<td><code>' + script.pid + '</code></td>';
+                html += '<td>' + formatUptime(script.start_time) + '</td>';
+                html += '<td>' + statusBadge + '</td>';
+                html += '<td>';
+                html += '<div class="btn-group btn-group-sm">';
+                html += '<button class="btn btn-outline-info btn-sm show-logs" data-filename="' + script.filename + '">Logs</button>';
+                if (script.status === 'running') {
+                    html += '<button class="btn btn-outline-danger btn-sm stop-script" data-filename="' + script.filename + '">Stop</button>';
+                }
+                html += '</div>';
+                html += '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            $('.running-scripts-list').html(html);
+            
+            // Добавляем обработчики для кнопок
+            $('.stop-script').on('click', function() {
+                const filename = $(this).data('filename');
+                stopScript(filename);
+            });
+            
+            $('.show-logs').on('click', function() {
+                const filename = $(this).data('filename');
+                showLogs(filename);
+            });
+        },
+        error: function(xhr) {
+            $('.running-scripts-list').html('<div class="alert alert-danger">Error loading running scripts: ' + 
+                                          (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error') + '</div>');
+        }
+    });
+}
+
+// В функции loadLogs добавим отладочную информацию
+function loadLogs() {
+    if (!currentLogScript) return;
+    
+    console.log(`Loading logs for ${currentLogScript}, since: ${lastLogTimestamp}`);
+    
+    $.ajax({
+        url: '/api/script_logs/' + encodeURIComponent(currentLogScript),
+        type: 'GET',
+        data: {
+            since: lastLogTimestamp,
+            limit: 0
+        },
+        success: function(response) {
+            console.log(`Received ${response.logs.length} logs for ${currentLogScript}`);
+            
+            if (response.logs && response.logs.length > 0) {
+                displayLogs(response.logs);
+                lastLogTimestamp = Math.max(...response.logs.map(log => log.timestamp));
+            } else {
+                console.log('No new logs received');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading logs:', xhr);
+            // Покажем ошибку в интерфейсе
+            $('#logContent').append(`<div class="log-line log-stderr">Error loading logs: ${xhr.status} ${xhr.statusText}</div>`);
+        }
+    });
+}
+
+// В функции displayLogs добавим отладочный вывод
+function displayLogs(logs) {
+    const logContent = $('#logContent');
+    const showTimestamps = $('#showTimestamps').is(':checked');
+    
+    console.log(`Displaying ${logs.length} logs`);
+    
+    logs.forEach(function(log) {
+        const timestamp = showTimestamps ? 
+            `<span class="log-timestamp">[${formatLogTime(log.timestamp)}]</span> ` : '';
+        
+        const logClass = log.type === 'stderr' ? 'log-stderr' : 'log-stdout';
+        const logLine = `<div class="log-line ${logClass}">${timestamp}<span class="log-content">${escapeHtml(log.message)}</span></div>`;
+        
+        logContent.append(logLine);
+    });
+    
+    // Авто-скролл
+    if ($('#autoScroll').is(':checked')) {
+        logContent.scrollTop(logContent[0].scrollHeight);
+    }
+}
+
+// Добавим начальное сообщение при открытии логов
+function showLogs(filename) {
+    currentLogScript = filename;
+    lastLogTimestamp = 0;
+    
+    $('#logScriptName').text(filename);
+    $('#logContent').html('<div class="text-center text-muted py-3">Loading logs...</div>');
+    $('#logModal').modal('show');
+    
+    console.log(`Opening logs for ${filename}`);
+    
+    // Загружаем логи
+    loadLogs();
+    
+    // Запускаем авто-обновление
+    if (logRefreshInterval) {
+        clearInterval(logRefreshInterval);
+    }
+    logRefreshInterval = setInterval(loadLogs, 2000);
+}
+
+// Экранирование HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Очистка логов
+function clearLogs() {
+    if (!currentLogScript) return;
+    
+    $.ajax({
+        url: '/api/clear_script_logs/' + encodeURIComponent(currentLogScript),
+        type: 'DELETE',
+        success: function() {
+            $('#logContent').empty();
+            lastLogTimestamp = 0;
+        },
+        error: function(xhr) {
+            const errorMessage = xhr.responseJSON ? xhr.responseJSON.error : 'Clear failed';
+            alert('Error clearing logs: ' + errorMessage);
+        }
+    });
+}
+
+// Запуск скрипта
+function runScript(filename) {
+    $.ajax({
+        url: '/api/run_script/' + encodeURIComponent(filename),
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            server_url: window.location.origin
+        }),
+        success: function(response) {
+            showUploadStatus('success', response.message);
+            loadRunningScripts();
+        },
+        error: function(xhr) {
+            const errorMessage = xhr.responseJSON ? xhr.responseJSON.error : 'Run failed';
+            showUploadStatus('error', errorMessage);
+        }
+    });
+}
+
+// Остановка скрипта
+function stopScript(filename) {
+    $.ajax({
+        url: '/api/stop_script/' + encodeURIComponent(filename),
+        type: 'POST',
+        success: function(response) {
+            showUploadStatus('success', response.message);
+            loadRunningScripts();
+        },
+        error: function(xhr) {
+            const errorMessage = xhr.responseJSON ? xhr.responseJSON.error : 'Stop failed';
+            showUploadStatus('error', errorMessage);
+        }
+    });
+}
+
+// Удаление скрипта
+function deleteScript(filename) {
+    $.ajax({
+        url: '/api/delete_script/' + encodeURIComponent(filename),
+        type: 'DELETE',
+        success: function(response) {
+            showUploadStatus('success', response.message);
+            loadScriptsList();
+        },
+        error: function(xhr) {
+            const errorMessage = xhr.responseJSON ? xhr.responseJSON.error : 'Delete failed';
+            showUploadStatus('error', errorMessage);
+        }
+    });
+}
+
+// Функция для показа статуса операций
+function showUploadStatus(type, message) {
+    const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+    const statusDiv = $('<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+                       message +
+                       '<button type="button" class="close" data-dismiss="alert">×</button></div>');
+    
+    $('.container').prepend(statusDiv);
+    
+    setTimeout(function() {
+        statusDiv.alert('close');
+    }, 5000);
+}
+
+$(document).ready(function() {
+    // Загружаем списки при загрузке страницы
+    loadScriptsList();
+    loadRunningScripts();
+    
+    // Обработчики для кнопок обновления
+    $('#refresh-scripts').on('click', function() {
+        loadScriptsList();
+    });
+    
+    $('#refresh-running').on('click', function() {
+        loadRunningScripts();
+    });
+    
+    // Обработчики для модального окна логов
+    $('#refreshLogs').on('click', function() {
+        loadLogs();
+    });
+    
+    $('#clearLogs').on('click', function() {
+        if (confirm('Are you sure you want to clear all logs for this script?')) {
+            clearLogs();
+        }
+    });
+    
+    $('#logModal').on('hidden.bs.modal', function() {
+        if (logRefreshInterval) {
+            clearInterval(logRefreshInterval);
+            logRefreshInterval = null;
+        }
+        currentLogScript = null;
+    });
+    
+    // Автоматическое обновление списка запущенных скриптов
+    setInterval(loadRunningScripts, 10000);
+    
+    // Обработчик для формы загрузки файлов
+    $('#upload-script-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        var uploadBtn = $(this).find('button[type="submit"]');
+        var originalText = uploadBtn.text();
+        var uploadStatus = $(this).find('.upload-status');
+        
+        uploadBtn.prop('disabled', true).text('Uploading...');
+        uploadStatus.html('<div class="alert alert-info">Uploading file...</div>');
+        
+        $.ajax({
+            url: '/api/upload_script',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                uploadStatus.html('<div class="alert alert-success">' + response.message + '</div>');
+                $('#script-file').val('');
+                loadScriptsList();
+            },
+            error: function(xhr) {
+                var errorMessage = 'Upload failed';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                }
+                uploadStatus.html('<div class="alert alert-danger">' + errorMessage + '</div>');
+            },
+            complete: function() {
+                uploadBtn.prop('disabled', false).text(originalText);
+                setTimeout(function() {
+                    uploadStatus.empty();
+                }, 5000);
+            }
+        });
+    });
+});
+</script>
 
 </body>
 </html>

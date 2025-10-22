@@ -89,6 +89,10 @@ def parse_args():
     parser.add_argument('--interpreter', metavar='COMMAND',
                         help='Explicitly specify sploit interpreter (use on Windows, which doesn\'t '
                              'understand shebangs)')
+    
+    parser.add_argument('--task', metavar='TASK',
+                        default='',
+                        help='Task name for submitted flags')
 
     parser.add_argument('--pool-size', metavar='N', type=int, default=50,
                         help='Maximal number of concurrent sploit instances. '
@@ -254,7 +258,7 @@ def post_flags(args, flags):
     else:
         sploit_name = os.path.basename(args.sploit)
         
-    data = [{'flag': item['flag'], 'sploit': sploit_name, 'team': item['team']}
+    data = [{'flag': item['flag'], 'sploit': sploit_name, 'team': item['team'], 'task': args.task}
             for item in flags]
 
     req = Request(urljoin(args.server_url, '/api/post_flags'))
@@ -264,7 +268,6 @@ def post_flags(args, flags):
     with urlopen(req, data=json.dumps(data).encode(), timeout=SERVER_TIMEOUT) as conn:
         if conn.status != 200:
             raise APIException(conn.read())
-
 
 exit_event = threading.Event()
 
@@ -289,17 +292,18 @@ class FlagStorage:
     may call pick_flags() and mark_as_sent().
     """
 
-    def __init__(self):
+    def __init__(self, task=''):
         self._flags_seen = set()
         self._queue = []
         self._lock = threading.RLock()
+        self._task = task
 
     def add(self, flags, team_name):
         with self._lock:
             for item in flags:
                 if item not in self._flags_seen:
                     self._flags_seen.add(item)
-                    self._queue.append({'flag': item, 'team': team_name})
+                    self._queue.append({'flag': item, 'team': team_name, 'task': self._task})
 
     def pick_flags(self):
         with self._lock:
@@ -315,8 +319,12 @@ class FlagStorage:
             return len(self._queue)
 
 
-flag_storage = FlagStorage()
+# Инициализируем FlagStorage с task из аргументов
+flag_storage = None
 
+def init_flag_storage(task):
+    global flag_storage
+    flag_storage = FlagStorage(task)
 
 POST_PERIOD = 5
 
@@ -530,8 +538,12 @@ def main(args):
         logging.critical(str(e))
         return
 
+    init_flag_storage(args.task)
+
     print(highlight(HEADER))
     logging.info('Connecting to the farm server at {}'.format(args.server_url))
+    if args.task:
+        logging.info('Using task: {}'.format(args.task))
 
     threading.Thread(target=lambda: run_post_loop(args)).start()
 
@@ -560,7 +572,6 @@ def main(args):
 
         for team_name, team_addr in teams.items():
             pool.submit(run_sploit, args, team_name, team_addr, attack_no, max_runtime, flag_format)
-
 
 def shutdown():
     # Stop run_post_loop thread
