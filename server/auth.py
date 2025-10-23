@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import request, Response
 
-from server import reloader
+from server.utils import reloader
 
 
 def authenticate():

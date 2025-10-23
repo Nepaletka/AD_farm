@@ -9,10 +9,11 @@ from flask import request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from collections import deque
 
-from server import app, auth, reloader
+from server import app, auth
 from server.db import database
 from server.db.models import FlagStatus, Task
-from server.spam import is_spam_flag
+from server.utils import reloader
+from server.utils.spam import is_spam_flag
 from werkzeug.utils import secure_filename
 from pathlib import Path
 
@@ -234,7 +235,7 @@ def run_script(filename):
             server_url = f"http://{config.get('SERVER_HOST', 'localhost')}:{config.get('SERVER_PORT', 5000)}"
 
         # Путь к start_sploit.py
-        start_sploit_path = os.path.join(PROJECT_ROOT, "start_sploit.py")
+        start_sploit_path = os.path.join(PROJECT_ROOT, "/utils/start_sploit.py")
         
         if not os.path.exists(start_sploit_path):
             return jsonify({"error": "start_sploit.py not found"}), 500
@@ -391,7 +392,7 @@ def script_status(filename):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 @app.route('/api/running_scripts')
-@auth.api_auth_required
+@auth.auth_required
 def get_running_scripts():
     """Get list of all running scripts"""
     try:
@@ -426,7 +427,7 @@ def get_running_scripts():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/get_tasks')
-@auth.api_auth_required
+@auth.auth_required
 def get_tasks():
     """Get list of all tasks from JSON file"""
     try:

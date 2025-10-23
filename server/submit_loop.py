@@ -5,9 +5,10 @@ import random
 import time
 from collections import defaultdict
 
-from server import app, reloader
+from server import app
 from server.db import database
 from server.db.models import Flag, FlagStatus, SubmitResult
+from server.utils import reloader
 
 
 def get_fair_share(groups, limit):
