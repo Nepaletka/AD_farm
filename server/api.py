@@ -235,7 +235,7 @@ def run_script(filename):
             server_url = f"http://{config.get('SERVER_HOST', 'localhost')}:{config.get('SERVER_PORT', 5000)}"
 
         # Путь к start_sploit.py
-        start_sploit_path = os.path.join(PROJECT_ROOT, "/utils/start_sploit.py")
+        start_sploit_path = os.path.join(PROJECT_ROOT, "utils/start_sploit.py")
         
         if not os.path.exists(start_sploit_path):
             return jsonify({"error": "start_sploit.py not found"}), 500
