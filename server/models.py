@@ -10,4 +10,5 @@ class FlagStatus(Enum):
 
 
 Flag = namedtuple('Flag', ['flag', 'sploit', 'team', 'task', 'time', 'status', 'checksystem_response'])
+Task = namedtuple('Task', ['Name', 'IP', 'Notes'])
 SubmitResult = namedtuple('SubmitResult', ['flag', 'status', 'checksystem_response'])

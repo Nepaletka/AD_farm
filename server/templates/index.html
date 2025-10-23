@@ -168,15 +168,41 @@
                     </form>
                 </div>
             </div>
-            
-            <!-- Секция для загрузки файлов -->
-            <div class="card border-light mt-4">
+        </div>
+    </div>
+    <div class="container mt-4">
+    <div class="row">
+        <!-- Левая колонка: Task Table -->
+        <div class="col-lg-7">
+            <div class="card border-light">
+                <div class="card-body">
+                    <h4 class="card-title">Task List</h4>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>IP</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody class="task-table-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка: Upload Script File -->
+        <div class="col-lg-5">
+            <div class="card border-light">
                 <div class="card-body">
                     <h4 class="card-title">Upload Script File</h4>
                     <form id="upload-script-form" enctype="multipart/form-data">
                         <div class="form-group">
                             <label for="script-file">Select script file</label>
-                            <input type="file" class="form-control-file" id="script-file" name="file" accept=".py,.sh,.txt,.php,.js,.rb,.pl,.go,.java,.c,.cpp,.cs,.rs" required>
+                            <input type="file" class="form-control-file" id="script-file" name="file" required>
                             <small class="form-text text-muted">
                                 Supported formats: Python, Shell, PHP, JavaScript, Ruby, Perl, Go, Java, C/C++, C#, Rust
                             </small>
@@ -188,6 +214,8 @@
             </div>
         </div>
     </div>
+</div>
+
 
     <!-- Секция для отображения списка файлов -->
     <div class="row mb-4">
@@ -387,6 +415,34 @@ function loadScriptsList() {
         }
     });
 }
+
+function loadTasks() {
+    $.ajax({
+        url: '/api/get_tasks',
+        type: 'GET',
+        success: function(tasks) {
+            let html = '';
+            tasks.forEach(function(task) {
+                html += '<tr>';
+                html += '<td>' + escapeHtml(task.Name) + '</td>';
+                // Сделаем IP кликабельным
+                html += '<td><a href="http://' + encodeURIComponent(task.IP) + '" target="_blank">' 
+                        + escapeHtml(task.IP) + '</a></td>';
+                html += '<td>' + escapeHtml(task.Notes) + '</td>';
+                html += '</tr>';
+            });
+            $('.task-table-body').html(html);
+        },
+        error: function(xhr) {
+            $('.task-table-body').html('<tr><td colspan="3" class="text-center text-danger">Failed to load tasks</td></tr>');
+        }
+    });
+}
+
+$(document).ready(function() {
+    loadTasks();
+});
+
 
 // Загрузка и отображение запущенных скриптов
 function loadRunningScripts() {

@@ -1,0 +1,17 @@
+[
+    {
+        "Name": "BackupServer",
+        "IP": "192.168.1.10:5000",
+        "Notes": "Nightly backup task"
+    },
+    {
+        "Name": "WebScraper",
+        "IP": "192.168.1.20",
+        "Notes": "Scrapes product data daily"
+    },
+    {
+        "Name": "DatabaseCleanup",
+        "IP": "192.168.1.30",
+        "Notes": "Removes old logs every Sunday"
+    }
+]

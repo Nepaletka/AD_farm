@@ -1,5 +1,6 @@
 import re
 import time
+import json
 import os
 import subprocess
 import threading
@@ -12,7 +13,7 @@ from flask import jsonify, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from server import app, auth, database, reloader
-from server.models import FlagStatus
+from server.models import FlagStatus, Task
 
 
 @app.template_filter('timestamp_to_datetime')
@@ -449,6 +450,32 @@ def get_running_scripts():
             del running_processes[name]
             
         return jsonify(running)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/get_tasks')
+@auth.api_auth_required
+def get_tasks():
+    """Get list of all tasks from JSON file"""
+    try:
+        with open('tasks.json', 'r') as f:
+            data = json.load(f)
+        
+        tasks = []
+        for item in data:
+            # Преобразуем словарь в namedtuple
+            task = Task(
+                Name=item.get('Name', ''),
+                IP=item.get('IP', ''),
+                Notes=item.get('Notes', '')
+            )
+            tasks.append(task._asdict())  # конвертируем в dict для jsonify
+
+        return jsonify(tasks)
+    except FileNotFoundError:
+        return jsonify({"error": "tasks.json file not found"}), 404
+    except json.JSONDecodeError:
+        return jsonify({"error": "Invalid JSON format"}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
