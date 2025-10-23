@@ -12,5 +12,5 @@ services:
     ports:
       - 9000:5000
     command: |
-      sh -c "cd server && ls && ./start_server.sh"
+      sh -c "cd server && flask --app standalone.py run --host=0.0.0.0 --with-threads"
 networks: {}

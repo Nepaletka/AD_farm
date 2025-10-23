@@ -1,7 +1,7 @@
 from themis.finals.attack.helper import Helper
 from themis.finals.attack.result import Result
 
-from server.models import FlagStatus, SubmitResult
+from server.db.models import FlagStatus, SubmitResult
 
 
 RESPONSES = {

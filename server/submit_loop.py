@@ -5,8 +5,9 @@ import random
 import time
 from collections import defaultdict
 
-from server import app, database, reloader
-from server.models import Flag, FlagStatus, SubmitResult
+from server import app, reloader
+from server.db import database
+from server.db.models import Flag, FlagStatus, SubmitResult
 
 
 def get_fair_share(groups, limit):

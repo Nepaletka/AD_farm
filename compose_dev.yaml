@@ -1,0 +1,36 @@
+services:
+  destructivefarm:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: destructivefarm
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - .:/ferma
+    networks:
+      - app-network
+    ports:
+      - 9000:5000
+    command: |
+      sh -c "cd server && flask --app standalone.py --debug run --host=0.0.0.0 --with-threads"
+
+  checker:
+    image: "python:3.11-slim"
+    container_name: checker
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    volumes:
+      - .:/ferma
+    networks:
+      - app-network
+    ports:
+      - "31337:31337"
+    command: |
+      sh -c "cd tests/mock_checksystem && pwd && python3 ructf.py"
+    
+networks:
+  app-network:
+    driver: bridge
