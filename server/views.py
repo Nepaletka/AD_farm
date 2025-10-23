@@ -1,14 +1,13 @@
 import re
 import time
-import json
 from datetime import datetime
 
 from flask import jsonify, render_template, request
 
-from server import app, auth
+from server import app
 from server.db import database
 from server.db.models import FlagStatus
-from server.utils import reloader
+from server.utils import auth, reloader
 
 
 @app.template_filter('timestamp_to_datetime')

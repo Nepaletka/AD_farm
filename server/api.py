@@ -9,10 +9,10 @@ from flask import request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from collections import deque
 
-from server import app, auth
+from server import app
 from server.db import database
 from server.db.models import FlagStatus, Task
-from server.utils import reloader
+from server.utils import auth, reloader
 from server.utils.spam import is_spam_flag
 from werkzeug.utils import secure_filename
 from pathlib import Path
