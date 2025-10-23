@@ -105,14 +105,12 @@ def log_reader(process, filename, stdout, stderr):
 def download_script(filename):
     return send_from_directory(SCRIPTS_DIR, filename, as_attachment=True)
 
-
 @app.route('/api/get_config')
 @auth.api_auth_required
 def get_config():
     config = reloader.get_config()
     return jsonify({key: value for key, value in config.items()
                     if 'PASSWORD' not in key and 'TOKEN' not in key})
-
 
 @app.route('/api/post_flags', methods=['POST'])
 @auth.api_auth_required
@@ -225,10 +223,12 @@ def run_script(filename):
         if safe_filename in running_processes:
             return jsonify({"error": "Script is already running"}), 400
 
-        # Получаем URL сервера и task из запроса
+        # Получаем данные из запроса
+        request_data = request.json or {}
+        server_url = request_data.get('server_url')
+        task = request_data.get('task', '')  # task опциональный
+
         config = reloader.get_config()
-        server_url = request.json.get('server_url') if request.json else None
-        task = request.json.get('task', '') if request.json else ''  # Получаем task из запроса
         
         if not server_url:
             # Используем URL из конфигурации или дефолтный
@@ -267,7 +267,7 @@ def run_script(filename):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             bufsize=1,
-            universal_newlines=False,  # Важно для корректной работы с байтами
+            universal_newlines=False,
             cwd=PROJECT_ROOT
         )
 
@@ -286,7 +286,7 @@ def run_script(filename):
             'command': ' '.join(cmd),
             'status': 'running',
             'log_thread': log_thread,
-            'task': task  # Сохраняем task для отображения
+            'task': task
         }
 
         # Добавляем начальное сообщение в логи
