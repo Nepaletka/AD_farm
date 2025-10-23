@@ -17,7 +17,9 @@ services:
       sh -c "cd server && flask --app standalone.py --debug run --host=0.0.0.0 --with-threads"
 
   checker:
-    image: "python:3.11-slim"
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     container_name: checker
     dns:
       - 8.8.8.8

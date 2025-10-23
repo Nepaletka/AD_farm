@@ -19,6 +19,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent
 
 SCRIPTS_DIR = os.path.join(PROJECT_ROOT, "scripts")
+os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
 MAX_LOG_LINES = 1000
 running_processes = {}
